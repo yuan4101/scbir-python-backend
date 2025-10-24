@@ -4,71 +4,98 @@ from typing import List, Optional
 
 import cv2
 import numpy as np
-#import pandas as pd  # opcional, no es requerido pero útil si luego quieres DataFrame
+import requests
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 from skimage.feature import local_binary_pattern
-from supabase import create_client, Client  # supabase-py v2
+from supabase import create_client, Client
+
 
 # =========================
-# Configuración y clientes
+# Configuración
 # =========================
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://oielbczfjirunzydccod.supabase.co")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZWxiY3pmamlydW56eWRjY29kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTE0ODI1MSwiZXhwIjoyMDc2NzI0MjUxfQ.gOTR08x_7xqKjvsoeeqgesSB43cUFgEXShwSJ3DJ6jk")
+SUPABASE_URL = os.getenv(
+    "SUPABASE_URL",
+    "https://oielbczfjirunzydccod.supabase.co"
+)
+SUPABASE_SERVICE_ROLE_KEY = os.getenv(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZWxiY3pmamlydW56eWRjY29kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTE0ODI1MSwiZXhwIjoyMDc2NzI0MjUxfQ.gOTR08x_7xqKjvsoeeqgesSB43cUFgEXShwSJ3DJ6jk"
+)
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    # Arranca igual para healthcheck; pero /cbir/search fallará con 500 hasta que definas las vars
-    print("ADVERTENCIA: Faltan variables SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY")
+    print("⚠️  ADVERTENCIA: Faltan variables SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY")
 
 supabase: Optional[Client] = None
 try:
     if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        print("✅ Supabase inicializado correctamente")
 except Exception as e:
-    print(f"No se pudo inicializar Supabase: {e}")
+    print(f"❌ No se pudo inicializar Supabase: {e}")
     supabase = None
 
 IMAGE_SIZE = (256, 256)
 
-app = FastAPI(title="CBIR HSV+LBP para carros", version="1.0.0")
+app = FastAPI(title="CBIR HSV+LBP para carros", version="2.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # en producción, limita a tu dominio Frontend si llamas directo
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 # =========================
-# Utilidades de imagen
+# Utilidades - Procesamiento de Imagen
 # =========================
 
+def load_image_from_bytes(content: bytes) -> np.ndarray:
+    """Decodifica bytes y redimensiona imagen al tamaño estándar."""
+    arr = np.frombuffer(content, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise ValueError("No se pudo decodificar la imagen")
+    return cv2.resize(img, IMAGE_SIZE)
+
+
 def extraer_color_imagen(image: np.ndarray) -> np.ndarray:
-    """
-    Histograma 3D HSV con bins 8x8x8 => 512 dim, normalizado.
-    """
+    """Calcula histograma 3D HSV (8x8x8 bins = 512 dims)."""
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     hist = cv2.calcHist([hsv], [0, 1, 2], None, [8, 8, 8], [0, 180, 0, 256, 0, 256])
     hist = cv2.normalize(hist, hist).flatten()
     return hist
 
+
 def extraer_lbp_imagen(image_gray: np.ndarray) -> np.ndarray:
-    """
-    LBP uniforme con P=8, R=1; histograma 256 bins normalizado.
-    """
+    """Calcula LBP uniforme (P=8, R=1) con histograma de 256 bins."""
     lbp = local_binary_pattern(image_gray, P=8, R=1, method="uniform")
     hist, _ = np.histogram(lbp.ravel(), bins=256, range=(0, 256))
     hist = hist.astype("float")
     hist /= (hist.sum() + 1e-7)
     return hist
 
-def load_image_from_bytes(content: bytes) -> np.ndarray:
-    arr = np.frombuffer(content, dtype=np.uint8)
-    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-    if img is None:
-        raise ValueError("No se pudo decodificar la imagen")
-    return cv2.resize(img, IMAGE_SIZE)
+
+def segmentar_con_grabcut(image: np.ndarray) -> np.ndarray:
+    """Aplica segmentación GrabCut para aislar el objeto del fondo."""
+    mask = np.zeros(image.shape[:2], np.uint8)
+    bgdModel = np.zeros((1, 65), np.float64)
+    fgdModel = np.zeros((1, 65), np.float64)
+    
+    h, w = image.shape[:2]
+    rect = (int(w * 0.1), int(h * 0.1), int(w * 0.8), int(h * 0.8))
+    
+    try:
+        cv2.grabCut(image, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+        mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
+        image_segmentada = image * mask2[:, :, np.newaxis]
+        return image_segmentada
+    except Exception as e:
+        print(f"⚠️  GrabCut falló: {e}")
+        return image
+
 
 # =========================
 # Salud
@@ -76,156 +103,282 @@ def load_image_from_bytes(content: bytes) -> np.ndarray:
 
 @app.get("/health")
 def health():
+    """Endpoint de salud del servicio."""
     return {
         "status": "ok",
         "supabase": bool(supabase),
         "image_size": IMAGE_SIZE,
-        "model": "HSV(512)+LBP(256)",
+        "versions": ["v1", "v2"],
     }
 
-@app.post("/cbir/precompute")
-async def precompute_features():
-    """
-    Descarga todas las imágenes de la tabla carros, calcula sus vectores de características
-    (HSV+LBP) y actualiza el campo vector_caracteristicas en Supabase.
-    """
+
+# =========================
+# Versión 1: HSV+LBP Estándar
+# =========================
+
+@app.post("/cbir/precompute/v1")
+async def precompute_features_v1():
+    """Precalcula vectores V1 (HSV+LBP) para todas las imágenes."""
     if supabase is None:
         raise HTTPException(500, "Supabase no inicializado")
     
     try:
-        # 1) Obtener todos los registros que tengan imagen pero no vector
         resp = supabase.table("carros").select("id, imagen").execute()
         rows = resp.data or []
         
         if not rows:
-            return {"message": "No hay registros para procesar", "processed": 0}
+            return {"message": "No hay registros", "processed": 0}
         
         processed = 0
         errors = []
         
-        # 2) Procesar cada imagen
-        for r in rows:
+        for idx, r in enumerate(rows, 1):
             record_id = r.get("id")
             image_url = r.get("imagen")
             
             if not image_url:
                 continue
-                
+            
             try:
-                # Descargar imagen desde la URL
-                import requests
-                response = requests.get(image_url, timeout=10)
+                response = requests.get(image_url, timeout=15)
                 response.raise_for_status()
                 
-                # Cargar y procesar imagen
                 img = load_image_from_bytes(response.content)
                 
-                # Calcular vectores HSV (512) + LBP (256)
-                color_vec = extraer_color_imagen(img)  # 512 dims
+                color_vec = extraer_color_imagen(img)
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                texture_vec = extraer_lbp_imagen(gray)  # 256 dims
+                texture_vec = extraer_lbp_imagen(gray)
                 
-                # Concatenar vectores
-                full_vector = np.concatenate([color_vec, texture_vec]).tolist()
+                full_vector = np.concatenate([color_vec, texture_vec])
+                vector_str = "[" + ",".join(map(str, full_vector.tolist())) + "]"
                 
-                # Actualizar en Supabase
                 supabase.table("carros").update({
-                    "vector_caracteristicas": full_vector
+                    "vector_caracteristicas_v1": vector_str
                 }).eq("id", record_id).execute()
                 
                 processed += 1
+                print(f"✅ V1 [{idx}/{len(rows)}] {record_id}")
                 
             except Exception as e:
                 errors.append({"id": record_id, "error": str(e)})
-                continue
+                print(f"❌ V1 [{idx}/{len(rows)}] {record_id}: {e}")
         
         return {
+            "version": "v1",
             "message": "Procesamiento completado",
             "processed": processed,
             "total": len(rows),
-            "errors": errors[:10]  # Limita errores mostrados
+            "errors": errors[:10]
         }
         
     except Exception as e:
-        raise HTTPException(500, f"Error en precálculo: {e}")
+        raise HTTPException(500, f"Error en precálculo V1: {e}")
 
 
-# =========================
-# Búsqueda CBIR contra Supabase
-# =========================
-
-@app.post("/cbir/search")
-async def cbir_search(
+@app.post("/cbir/search/v1")
+async def cbir_search_v1(
     file: Optional[UploadFile] = File(None, description="Imagen de consulta"),
     threshold: float = Form(0.3, description="Umbral de similitud [0-1]"),
     top_k: int = Form(12, description="Número de resultados"),
 ):
-    """
-    Recibe una imagen, calcula HSV+LBP de la query, lee todos los registros de Supabase (id, imagen, vector_caracteristicas),
-    calcula similitud coseno por segmentos y devuelve top_k.
-    """
+    """Búsqueda V1 usando similitud coseno."""
     if supabase is None:
-        raise HTTPException(500, "Supabase no inicializado. Verifica variables SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY")
-
+        raise HTTPException(500, "Supabase no inicializado")
+    
     if not file:
-        raise HTTPException(400, "Envía 'file' en multipart/form-data")
-
+        raise HTTPException(400, "Falta parámetro 'file'")
+    
     try:
-        # 1) Vector de la query
         content = await file.read()
         qimg = load_image_from_bytes(content)
-        q_color = extraer_color_imagen(qimg).reshape(1, -1)  # 512
-        q_texture = extraer_lbp_imagen(cv2.cvtColor(qimg, cv2.COLOR_BGR2GRAY)).reshape(1, -1)  # 256
-
-        # 2) Leer de Supabase solo las columnas necesarias
-        # Nota: si la tabla es grande, considera paginar o usar filtros.
-        resp = supabase.table("carros").select("id, imagen, vector_caracteristicas").execute()
+        
+        q_color = extraer_color_imagen(qimg).reshape(1, -1)
+        q_texture = extraer_lbp_imagen(cv2.cvtColor(qimg, cv2.COLOR_BGR2GRAY)).reshape(1, -1)
+        
+        resp = supabase.table("carros").select("id, imagen, vector_caracteristicas_v1").execute()
         rows = resp.data or []
-
+        
         results: List[dict] = []
+        
         for r in rows:
-            vec = r.get("vector_caracteristicas")
-
-            # El campo puede venir como list[float] (si es json/array) o como str (si lo guardaste serializado).
+            vec = r.get("vector_caracteristicas_v1")
+            
             if isinstance(vec, str):
                 try:
                     vec = ast.literal_eval(vec)
                 except Exception:
                     continue
+            
             if not isinstance(vec, list):
                 continue
-
+            
             arr = np.array(vec, dtype=np.float32)
             if arr.ndim != 1 or arr.size < 768:
-                # Esperamos 512 HSV + 256 LBP = 768; ajusta si tu esquema difiere.
                 continue
-
+            
             hsv = arr[:512].reshape(1, -1)
             lbp = arr[512:768].reshape(1, -1)
-
+            
             sim_color = float(cosine_similarity(q_color, hsv)[0][0])
             sim_texture = float(cosine_similarity(q_texture, lbp)[0][0])
             sim = (sim_color + sim_texture) / 2.0
-
+            
             if sim >= threshold:
                 results.append({
                     "id": r.get("id"),
                     "imagen": r.get("imagen"),
                     "similarity": sim,
                 })
-
-        # 3) Ordenar y truncar
+        
         results.sort(key=lambda x: x["similarity"], reverse=True)
-        results = results[: max(1, min(top_k, 100))]  # limita hard a 100
-
-        # 4) Respuesta compatible con tu UI
+        results = results[:max(1, min(top_k, 100))]
+        
         return {
+            "version": "v1",
             "carros": results,
             "total": len(results),
             "totalPages": 1
         }
-
+        
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"CBIR error: {e}")
+        raise HTTPException(500, f"Error en búsqueda V1: {e}")
+
+
+# =========================
+# Versión 2: GrabCut + Distancia Euclidiana
+# =========================
+
+@app.post("/cbir/precompute/v2")
+async def precompute_features_v2():
+    """Precalcula vectores V2 (GrabCut + HSV+LBP) para todas las imágenes."""
+    if supabase is None:
+        raise HTTPException(500, "Supabase no inicializado")
+    
+    try:
+        resp = supabase.table("carros").select("id, imagen").execute()
+        rows = resp.data or []
+        
+        if not rows:
+            return {"message": "No hay registros", "processed": 0}
+        
+        processed = 0
+        errors = []
+        
+        for idx, r in enumerate(rows, 1):
+            record_id = r.get("id")
+            image_url = r.get("imagen")
+            
+            if not image_url:
+                continue
+            
+            try:
+                response = requests.get(image_url, timeout=15)
+                response.raise_for_status()
+                
+                img = load_image_from_bytes(response.content)
+                img_segmentada = segmentar_con_grabcut(img)
+                
+                color_vec = extraer_color_imagen(img_segmentada)
+                gray = cv2.cvtColor(img_segmentada, cv2.COLOR_BGR2GRAY)
+                texture_vec = extraer_lbp_imagen(gray)
+                
+                full_vector = np.concatenate([color_vec, texture_vec])
+                vector_str = "[" + ",".join(map(str, full_vector.tolist())) + "]"
+                
+                supabase.table("carros").update({
+                    "vector_caracteristicas_v2": vector_str
+                }).eq("id", record_id).execute()
+                
+                processed += 1
+                print(f"✅ V2 [{idx}/{len(rows)}] {record_id}")
+                
+            except Exception as e:
+                errors.append({"id": record_id, "error": str(e)})
+                print(f"❌ V2 [{idx}/{len(rows)}] {record_id}: {e}")
+        
+        return {
+            "version": "v2",
+            "message": "Procesamiento completado",
+            "processed": processed,
+            "total": len(rows),
+            "errors": errors[:10]
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error en precálculo V2: {e}")
+
+
+@app.post("/cbir/search/v2")
+async def cbir_search_v2(
+    file: Optional[UploadFile] = File(None, description="Imagen de consulta"),
+    threshold: float = Form(0.3, description="Umbral de similitud [0-1]"),
+    top_k: int = Form(12, description="Número de resultados"),
+):
+    """Búsqueda V2 usando GrabCut + distancia euclidiana ponderada."""
+    if supabase is None:
+        raise HTTPException(500, "Supabase no inicializado")
+    
+    if not file:
+        raise HTTPException(400, "Falta parámetro 'file'")
+    
+    try:
+        content = await file.read()
+        qimg = load_image_from_bytes(content)
+        qimg_segmentada = segmentar_con_grabcut(qimg)
+        
+        q_color = extraer_color_imagen(qimg_segmentada).reshape(1, -1)
+        q_texture = extraer_lbp_imagen(cv2.cvtColor(qimg_segmentada, cv2.COLOR_BGR2GRAY)).reshape(1, -1)
+        
+        resp = supabase.table("carros").select("id, imagen, vector_caracteristicas_v2").execute()
+        rows = resp.data or []
+        
+        results: List[dict] = []
+        
+        for r in rows:
+            vec = r.get("vector_caracteristicas_v2")
+            
+            if isinstance(vec, str):
+                try:
+                    vec = ast.literal_eval(vec)
+                except Exception:
+                    continue
+            
+            if not isinstance(vec, list):
+                continue
+            
+            arr = np.array(vec, dtype=np.float32)
+            if arr.ndim != 1 or arr.size < 768:
+                continue
+            
+            color_vec = arr[:512].reshape(1, -1)
+            texture_vec = arr[512:768].reshape(1, -1)
+            
+            dist_color = float(euclidean_distances(q_color, color_vec)[0][0])
+            dist_texture = float(euclidean_distances(q_texture, texture_vec)[0][0])
+            
+            distancia_total = 0.7 * dist_color + 0.3 * dist_texture
+            similarity = 1.0 / (1.0 + distancia_total)
+            
+            if similarity >= threshold:
+                results.append({
+                    "id": r.get("id"),
+                    "imagen": r.get("imagen"),
+                    "similarity": similarity,
+                })
+        
+        results.sort(key=lambda x: x["similarity"], reverse=True)
+        results = results[:max(1, min(top_k, 100))]
+        
+        return {
+            "version": "v2",
+            "carros": results,
+            "total": len(results),
+            "totalPages": 1
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error en búsqueda V2: {e}")
