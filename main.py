@@ -16,16 +16,16 @@ from supabase import create_client, Client  # supabase-py v2
 # =========================
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://oielbczfjirunzydccod.supabase.co")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZWxiY3pmamlydW56eWRjY29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNDgyNTEsImV4cCI6MjA3NjcyNDI1MX0.zsHFZhc4pUFUEb8ialtZzSA1rSXTlVHhlS1yFTB0PdE")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pZWxiY3pmamlydW56eWRjY29kIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTE0ODI1MSwiZXhwIjoyMDc2NzI0MjUxfQ.gOTR08x_7xqKjvsoeeqgesSB43cUFgEXShwSJ3DJ6jk")
 
-if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
     # Arranca igual para healthcheck; pero /cbir/search fallará con 500 hasta que definas las vars
     print("ADVERTENCIA: Faltan variables SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY")
 
 supabase: Optional[Client] = None
 try:
-    if SUPABASE_URL and SUPABASE_ANON_KEY:
-        supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 except Exception as e:
     print(f"No se pudo inicializar Supabase: {e}")
     supabase = None
