@@ -1,0 +1,274 @@
+[
+    {
+        "name": "ttcsid_COAQUDJC77UFKCAUR9O0",
+        "value": "1758817337143::L88jKyClDy6GDajOpBia.1.1758817965414.0",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1792513965
+    },
+    {
+        "name": "orguserid",
+        "value": "tZH007hZT0ZT",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1795848505
+    },
+    {
+        "name": "categories",
+        "value": "",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "ftid",
+        "value": "QFXyQiTsSQmuiYQqwzDuTXl5MfNMlSv9-1757727197763",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "no_restriction",
+        "expirationDate": 1795848505
+    },
+    {
+        "name": "cookiesPreferencesNotLogged",
+        "value": "%7B%22categories%22%3A%7B%7D%7D",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1792847274
+    },
+    {
+        "name": "category",
+        "value": "MCO1744",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "orguseridp",
+        "value": "231724124",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1795848505
+    },
+    {
+        "name": "orgnickp",
+        "value": "JUAN_ANTE4",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1795848505
+    },
+    {
+        "name": "main_domain",
+        "value": "",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "ttcsid_CSFUO4BC77U8G0CRASQG",
+        "value": "1761288504133::aQXehSGWgXBhByof4-b1.11.1761290376650.0",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1794986376
+    },
+    {
+        "name": "c_deals",
+        "value": "11.55.1-hotfix-2",
+        "domain": ".www.tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "expirationDate": 1763756542
+    },
+    {
+        "name": "last_query",
+        "value": "",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "_csrf",
+        "value": "KS2xubm3psfsfmOIhadBgoe8",
+        "domain": "www.tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true
+    },
+    {
+        "name": "_d2id",
+        "value": "e5fbeb95-88ec-4d97-a624-70c487fddcb1",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1793377331
+    },
+    {
+        "name": "_gcl_au",
+        "value": "1.1.557966745.1758817336",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1766593335
+    },
+    {
+        "name": "_mldataSessionId",
+        "value": "54560cf4-0615-4a7d-81ab-3c4cf1fc5851",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1761292178
+    },
+    {
+        "name": "_pin_unauth",
+        "value": "dWlkPVpqaGtNelUwWkdFdE1qUTBOeTAwWW1NNUxXSmlOekF0WlRReFlqWmpOVFUxTTJRNQ",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1792826376
+    },
+    {
+        "name": "_tc_cbanner_mco",
+        "value": "1",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1792647347
+    },
+    {
+        "name": "_tt_enable_cookie",
+        "value": "1",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1794986376
+    },
+    {
+        "name": "_ttp",
+        "value": "01K60TXFS3873HGTTWREHS6CBG_.tt.2",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1794986376
+    },
+    {
+        "name": "backend_dejavu_info",
+        "value": "j%3A%7B%7D",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "c_ui-navigation",
+        "value": "6.4.2",
+        "domain": ".www.tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "expirationDate": 1761409329
+    },
+    {
+        "name": "cookiesPreferencesLogged",
+        "value": "%7B%22userId%22%3A231724124%2C%22categories%22%3A%7B%7D%7D",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1761290674
+    },
+    {
+        "name": "cookiesPreferencesLoggedFallback",
+        "value": "%7B%22userId%22%3A231724124%2C%22categories%22%3A%7B%7D%7D",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1761895174
+    },
+    {
+        "name": "FCNEC",
+        "value": "%5B%5B%22AKsRol9BC1D4bY1sNPubItVE1PfyZ1rAaXkZ_yFTKcptUSfcAAVoeLXSZf8vWaRIiB0GlBqHtagxWlX70IciHFe-1uTNWa2RC8cwzHKmFBHzScRsoppYWtiYInl77PoKooETaqN_2On9HVrt1ixRSfeWWg_itLanJw%3D%3D%22%5D%5D",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1792744732
+    },
+    {
+        "name": "hide-cookie-banner",
+        "value": "231724124-BANNER_NOT_NEEDED_BY_COOKIE_DISCLAIMER",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction",
+        "expirationDate": 1761290537
+    },
+    {
+        "name": "main_attributes",
+        "value": "",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": false,
+        "sameSite": "no_restriction"
+    },
+    {
+        "name": "ssid",
+        "value": "ghy-102304-36zCBiOpplaEmX3xGFjYXMqFiVCsl1-__-231724124-__-1855900841112--RRR_0-RRR_0",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": true,
+        "httpOnly": true,
+        "sameSite": "no_restriction",
+        "expirationDate": 1795848505
+    },
+    {
+        "name": "ttcsid",
+        "value": "1761288504134::7HsR5jkuRlGT7bhWCDRW.11.1761290376650.0",
+        "domain": ".tucarro.com.co",
+        "path": "/",
+        "secure": false,
+        "httpOnly": false,
+        "expirationDate": 1794986376
+    }
+]
