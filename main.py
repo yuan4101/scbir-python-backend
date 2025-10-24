@@ -83,6 +83,73 @@ def health():
         "model": "HSV(512)+LBP(256)",
     }
 
+@app.post("/cbir/precompute")
+async def precompute_features():
+    """
+    Descarga todas las imágenes de la tabla carros, calcula sus vectores de características
+    (HSV+LBP) y actualiza el campo vector_caracteristicas en Supabase.
+    """
+    if supabase is None:
+        raise HTTPException(500, "Supabase no inicializado")
+    
+    try:
+        # 1) Obtener todos los registros que tengan imagen pero no vector
+        resp = supabase.table("carros").select("id, imagen").execute()
+        rows = resp.data or []
+        
+        if not rows:
+            return {"message": "No hay registros para procesar", "processed": 0}
+        
+        processed = 0
+        errors = []
+        
+        # 2) Procesar cada imagen
+        for r in rows:
+            record_id = r.get("id")
+            image_url = r.get("imagen")
+            
+            if not image_url:
+                continue
+                
+            try:
+                # Descargar imagen desde la URL
+                import requests
+                response = requests.get(image_url, timeout=10)
+                response.raise_for_status()
+                
+                # Cargar y procesar imagen
+                img = load_image_from_bytes(response.content)
+                
+                # Calcular vectores HSV (512) + LBP (256)
+                color_vec = extraer_color_imagen(img)  # 512 dims
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                texture_vec = extraer_lbp_imagen(gray)  # 256 dims
+                
+                # Concatenar vectores
+                full_vector = np.concatenate([color_vec, texture_vec]).tolist()
+                
+                # Actualizar en Supabase
+                supabase.table("carros").update({
+                    "vector_caracteristicas": full_vector
+                }).eq("id", record_id).execute()
+                
+                processed += 1
+                
+            except Exception as e:
+                errors.append({"id": record_id, "error": str(e)})
+                continue
+        
+        return {
+            "message": "Procesamiento completado",
+            "processed": processed,
+            "total": len(rows),
+            "errors": errors[:10]  # Limita errores mostrados
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error en precálculo: {e}")
+
+
 # =========================
 # Búsqueda CBIR contra Supabase
 # =========================
