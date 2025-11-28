@@ -8,5 +8,5 @@ def health():
     return {
         "status": "ok",
         "image_size": settings.IMAGE_SIZE,
-        "versions": ["v1", "v2"],
+        "versions": ["v1", "v2", "v3"],
     }

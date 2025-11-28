@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from PIL import Image
+from rembg import remove
 from config.settings import settings
 
 def load_image_from_bytes(content: bytes) -> np.ndarray:
@@ -25,3 +27,32 @@ def segmentar_con_grabcut(image: np.ndarray) -> np.ndarray:
     except Exception as e:
         print(f"⚠️  GrabCut falló: {e}")
         return image
+
+def segmentar_con_rembg(image: np.ndarray) -> np.ndarray:
+    """
+    Aplica segmentación basada en Deep Learning usando rembg (U²-Net).
+    Elimina el fondo completamente, dejando solo el vehículo sobre fondo negro.
+    
+    Ventajas sobre GrabCut:
+    - Basado en red neuronal U²-Net pre-entrenada
+    - Segmentación completamente automática
+    - Bordes precisos y limpios
+    - Elimina 100% del fondo
+    """
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(image_rgb)
+    
+    output_pil = remove(pil_image)
+    output_np = np.array(output_pil)
+    
+    if output_np.shape[2] == 4:
+        rgb = output_np[:, :, :3]
+        alpha = output_np[:, :, 3]
+        
+        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        mask = (alpha > 10).astype(np.uint8)
+        image_segmentada = bgr * mask[:, :, np.newaxis]
+        
+        return image_segmentada
+    else:
+        return cv2.cvtColor(output_np, cv2.COLOR_RGB2BGR)
